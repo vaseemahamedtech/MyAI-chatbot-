@@ -1,7 +1,7 @@
 Flask
 python-dotenv
 google-api-python-client
-google-generativeai==0.8.5
 pyttsx3
 gunicorn
 google-search-results
+google-genai
