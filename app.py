@@ -1,3 +1,4 @@
+from flask import Flask, render_template, request, jsonify
 import os
 import time
 import logging
@@ -5,19 +6,21 @@ import threading
 import multiprocessing
 from functools import wraps
 from dotenv import load_dotenv
-import google.genai as genai
-from serpapi import GoogleSearch
-from flask import Flask, render_template, request, jsonify
 
 load_dotenv()
+from google import genai
+from serpapi import GoogleSearch
+
 app = Flask(__name__)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# Initialize clients with API keys
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")
 
+# TTS management (same as before)
 tts_process = None
 tts_lock = threading.Lock()
 
@@ -65,9 +68,9 @@ def rate_limit(max_per_second=3):
         return wrapper
     return decorator
 
-def get_gemini_response_with_custom_search(question):
+def search_web(query):
     search = GoogleSearch({
-        "q": question,
+        "q": query,
         "api_key": SERPAPI_API_KEY,
         "gl": "us",
         "hl": "en",
@@ -82,10 +85,15 @@ def get_gemini_response_with_custom_search(question):
             if snippet and url:
                 snippets.append(snippet)
                 sources.append({"title": snippet, "url": url})
+    return snippets, sources
+
+def get_gemini_response_with_custom_search(question):
+    snippets, sources = search_web(question)
+    # Construct prompt with search context
     prompt = question + "\n\nContext:\n" + "\n".join(snippets)
-    response = genai.generate_text(
+    response = client.models.generate_content(
         model="gemini-2.5-flash",
-        prompt=prompt
+        contents=prompt
     )
     return {
         "response": response.text,
@@ -145,3 +153,4 @@ def internal_error(error):
 
 if __name__ == "__main__":
     app.run(debug=True, threaded=True)
+
