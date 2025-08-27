@@ -8,7 +8,7 @@ from functools import wraps
 from dotenv import load_dotenv
 
 load_dotenv()
-from google import genai
+import google.generativeai as genai
 from serpapi import GoogleSearch
 
 app = Flask(__name__)
@@ -153,3 +153,4 @@ def internal_error(error):
 
 if __name__ == "__main__":
     app.run(debug=True, threaded=True)
+
